@@ -137,6 +137,7 @@ const WaitGameStartAdmin = () => {
     e.preventDefault();
     setHasClickedNext(true);
     const sessionCode = sessionStorage.getItem('sessionCode');
+    sessionStorage.setItem("players", JSON.stringify(players));
     await toNextQuestion(sessionCode);
     navigate(`/game-controller/${sessionCode}`);
   };

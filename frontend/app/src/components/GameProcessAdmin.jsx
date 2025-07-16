@@ -9,6 +9,7 @@ import Alien from './assets/Alien.svg'
 import Corona from './assets/Corona.svg'
 import Ghosty from './assets/Ghosty.svg'
 import Cookie6 from './assets/Cookie6.svg'
+import ShowLeaderBoardComponent from './childComponents/ShowLeaderBoardComponent.jsx';
 
 const GameProcessAdmin = () => {
   const { wsRefSession, connectSession, closeWsRefSession } = useSessionSocket();
@@ -26,6 +27,34 @@ const GameProcessAdmin = () => {
         Cookie6
       ] // Default empty question to avoid errors
     )
+  const [leaderboardVisible, setLeaderboardVisible] = useState(false);
+  const [leaderboardData, setLeaderboardData] = useState(null);
+
+  const finishSession = useCallback(async (code) => {
+    try {
+      const response = await fetch(`${API_ENDPOINTS.SESSION}/session/${code}/end`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      if (!response.ok) {
+        throw new Error(`Failed to end session with code: ${code}`);
+      }
+      console.log(`end session with code: [${code}] response:`, response);
+      // Очистка sessionStorage
+      sessionStorage.removeItem('sessionCode');
+      sessionStorage.removeItem('quizData');
+      sessionStorage.removeItem('currentQuestion');
+      // Закрытие WebSocket соединений
+      closeWsRefRealtime();
+      closeWsRefSession();
+      navigate('/')
+    } catch (error) {
+      console.error('Error end the session:', error);
+    }
+    
+  })
 
   useEffect(() => {
     const token = sessionStorage.getItem('jwt');
@@ -40,7 +69,7 @@ const GameProcessAdmin = () => {
       if (wsRefRealtime.current) wsRefRealtime.current.onclose = {finishSession}
       if (wsRefSession.current) wsRefSession.current.onclose = {finishSession}
     };
-  }, [connectSession, connectRealtime, wsRefSession, wsRefRealtime]);
+  }, [connectSession, connectRealtime, wsRefSession, wsRefRealtime, finishSession]);
 
 const toNextQuestion = async (sessionCode) => {
     console.log("give the next question api call in game-process-admin");
@@ -66,7 +95,7 @@ const toNextQuestion = async (sessionCode) => {
   };
 
 
-  const listenQuizQuestion = async (sessionCode) => {
+  const listenRealtimeWs = async (sessionCode) => {
     if (!sessionCode) {
       console.error('Session code is not available');
       return;
@@ -76,65 +105,46 @@ const toNextQuestion = async (sessionCode) => {
         const data = JSON.parse(event.data);
         if (data.type === 'question') {
           console.log('Received question:', data);
-          let modifiedQuestion = {
 
-          }
-          
           setCurrentQuestion(data);
           sessionStorage.setItem('currentQuestion', JSON.stringify(data));
           return data
         }
+        if (data.type === 'leaderboard') {
+          console.log('Received leaderboard data:', data.payload);
+
+          setLeaderboardData(data.payload);
+          setLeaderboardVisible(true);
+          return data;
+        }
       };
     } catch (error) {
-      console.error('Error listening for quiz questions:', error);
+      console.error('Error listening realtime service', error);
       return
     }
   };
 
-  const finishSession = async (code) => {
-    try {
-      const response = await fetch(`${API_ENDPOINTS.SESSION}/session/${code}/end`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-      if (!response.ok) {
-        throw new Error(`Failed to end session with code: ${code}`);
-      }
-      console.log(`end session with code: [${code}] response:`, response);
-      // Очистка sessionStorage
-      sessionStorage.removeItem('sessionCode');
-      sessionStorage.removeItem('quizData');
-      sessionStorage.removeItem('currentQuestion');
-      // Закрытие WebSocket соединений
-      closeWsRefRealtime();
-      closeWsRefSession();
-      navigate('/')
-    } catch (error) {
-      console.error('Error end the session:', error);
-    }
-    
-  }
-
   /* -------- кнопка "Next" -------- */
   const handleNextQuestion = async (e) => {
     e.preventDefault();
-    const sessionCode = sessionStorage.getItem('sessionCode');
 
-    // if (questionIndex === questionsAmount) {
-    //   await finishSession(sessionCode)
-    // }
+    const sessionCode = sessionStorage.getItem('sessionCode');
 
     toNextQuestion(sessionCode);
     setQuestionIndex((prevIndex) => prevIndex + 1);
 
-    const quizData = await listenQuizQuestion(sessionCode)
+    const quizData = await listenRealtimeWs(sessionCode)
   };
 
   /* -------- UI -------- */
   return (
     <div className="game-process">
+      {leaderboardVisible && (
+        <ShowLeaderBoardComponent
+          leaderboardData={leaderboardData}
+          onClose={() => setLeaderboardVisible(false)}
+        />
+      )}
       <div className='controller-question-title'>
         <h1>Live Quiz</h1>
 
