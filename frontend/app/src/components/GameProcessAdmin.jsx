@@ -106,7 +106,11 @@ const toNextQuestion = async (sessionCode) => {
         const data = JSON.parse(event.data);
         if (data.type === 'question') {
           console.log('Received question:', data);
+<<<<<<< HEAD
 
+=======
+          
+>>>>>>> release-1.1.0
           setCurrentQuestion(data);
           sessionStorage.setItem('currentQuestion', JSON.stringify(data));
           return data
@@ -140,6 +144,7 @@ const toNextQuestion = async (sessionCode) => {
   /* -------- UI -------- */
   return (
     <div className="game-process">
+<<<<<<< HEAD
       {leaderboardVisible && (
         <ShowLeaderBoardComponent
           leaderboardData={leaderboardData}
@@ -150,6 +155,12 @@ const toNextQuestion = async (sessionCode) => {
         <h1>Live Quiz</h1>
 
         <p>Question {questionIndex + 1}</p>
+=======
+      <div className='controller-question-title' 
+        // style={{backgroundImage: `url(${currentQuestion.payload})`}}
+      >
+        <img src={currentQuestion.payload} alt="Question" className="question-image" height={300}/>
+>>>>>>> release-1.1.0
       
         <h2>{currentQuestion ? currentQuestion.text : 'Waiting for question…'}</h2>
       </div>
