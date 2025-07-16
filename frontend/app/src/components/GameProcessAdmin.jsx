@@ -102,6 +102,7 @@ const toNextQuestion = async (sessionCode) => {
     }
     try {
       wsRefRealtime.current.onmessage = (event) => {
+        console.log('Received realtime message:', event);
         const data = JSON.parse(event.data);
         if (data.type === 'question') {
           console.log('Received question:', data);
