@@ -5,23 +5,31 @@ import (
 	"fmt"
 	"github.com/gorilla/websocket"
 	"log"
+	"time"
+	"xxx/real_time/models"
 	"xxx/shared"
 )
 
 type MessageType string
 
 const (
-	MessageTypeAnswer       = MessageType("result")
-	MessageTypeQuestion     = MessageType("question")
-	MessageTypeLeaderboard  = MessageType("leaderboard")
-	MessageTypeAck          = MessageType("game_start")
+	MessageTypeAnswer   = MessageType("result")
+	MessageTypeQuestion = MessageType("question")
+
+	MessageTypeLeaderboard = MessageType("leaderboard")
+	MessageTypeStat        = MessageType("question_stat")
+
+	MessageTypeEnd = MessageType("end") // sent to admin when game ends
+
 	MessageTypeNextQuestion = MessageType("next_question") // sent to admin when next question is triggered
-	MessageTypeEnd          = MessageType("end")           // sent to admin when game ends
+
+	MessageTypeError = MessageType("error")
 )
 
 // ClientMessage describes what we get from the user
 type ClientMessage struct {
-	Option int `json:"option"` // chosen answer index
+	Option    int       `json:"option"`              // chosen answer index
+	Timestamp time.Time `json:"timestamp,omitempty"` // time user have answered
 }
 
 func (m *ClientMessage) Bytes() []byte {
@@ -46,9 +54,10 @@ type ServerMessage struct {
 	Text            string          `json:"text,omitempty"`            // question text or feedback
 	Options         []shared.Option `json:"options,omitempty"`         // for question
 
-	// ------ if Type is MessageTypeAnswer ------
+	// ------ if Type is MessageTypeAnswer or MessageTypeStat ------
 	Correct bool `json:"correct,omitempty"` // for answerResult
 
+	// ------ if Type is MessageTypeLeaderboard or MessageTypeStat ------
 	Payload interface{} `json:"payload,omitempty"` // extra data (e.g. leaderboard)
 }
 
@@ -101,7 +110,6 @@ func handleRead(ctx *ConnectionContext, deps HandlerDeps) {
 func processAnswer(ctx *ConnectionContext, deps HandlerDeps, msg *ClientMessage) {
 	session := ctx.SessionId
 	qid, _ := deps.Tracker.GetCurrentQuestion(ctx.SessionId)
-	chosen := msg.Option
 
 	// Look up the correct option from the QuizTracker
 	correctIdx, correctOpt := deps.Tracker.GetCorrectOption(session, qid)
@@ -110,15 +118,24 @@ func processAnswer(ctx *ConnectionContext, deps HandlerDeps, msg *ClientMessage)
 		return
 	}
 
+	isCorrect := msg.Option == correctIdx
+	userAnswer := models.UserAnswer{
+		Option:    msg.Option,
+		Answered:  true,
+		Correct:   isCorrect,
+		Timestamp: msg.Timestamp,
+	}
+
 	// Record the answer
-	deps.Tracker.RecordAnswer(session, ctx.UserId, chosen == correctIdx)
+	deps.Tracker.RecordAnswer(session, ctx.UserId, userAnswer)
+	fmt.Println("recorded answer ", userAnswer, "from ", ctx.UserId)
 
 	// Send immediate feedback
-	isCorrect := chosen == correctIdx
-	resp := ServerMessage{
-		Type:        MessageTypeAnswer,
-		QuestionIdx: qid + 1,
-		Correct:     isCorrect,
-	}
-	deps.Registry.sendMessage(resp.Bytes(), ctx)
+
+	//resp := ServerMessage{
+	//	Type:        MessageTypeAnswer,
+	//	QuestionIdx: qid + 1,
+	//	Correct:     isCorrect,
+	//}
+	//deps.Registry.SendMessage(resp.Bytes(), ctx)
 }
