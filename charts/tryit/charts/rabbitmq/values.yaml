@@ -1,0 +1,23 @@
+enabled: true
+
+image:
+  name: rabbitmq:3.13-alpine
+  pullPolicy: IfNotPresent
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 128Mi
+  limits:
+    cpu: 300m
+    memory: 256Mi
+
+storage:
+  size: 1Gi
+  className: ""
+
+env:
+  RABBITMQ_LOAD_DEFINITIONS: "true"
+  RABBITMQ_DEFINITIONS_FILE: "/etc/rabbitmq/definitions.json"
+  RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+  RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}

@@ -1,0 +1,38 @@
+enabled: true
+
+image:
+  name: "${AUTH_IMAGE}"
+  pullPolicy: IfNotPresent
+
+service:
+  port: 8000
+
+replicas: 1
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi
+
+hpa:
+  enabled: true
+  minReplicas: 1
+  maxReplicas: 3
+  cpuUtilization: 80
+
+environment: prod
+
+env:
+  POSTGRES_USER: "${POSTGRES_USER}"
+  POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+  POSTGRES_DB: "${POSTGRES_DB}"
+  POSTGRES_TBL: "refresh_tokens"
+  DB_URL: "${DB_URL}"
+  TEST_DB_URL: "${TEST_DB_URL}"
+  CORS_ORIGINS: "${CORS_ORIGINS}"
+  JWT_SECRET_KEY: "${AUTH_JWT_SECRET_KEY}"
+  ENVIRONMENT: "production"
+  DEBUG: "false"

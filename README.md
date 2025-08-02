@@ -95,6 +95,27 @@ chmod +x setup.sh
 docker compose --env-file .env -f docker-compose.yaml -f docker-compose.prod.yaml up -d --build
 ```
 
+### Kubernetes
+
+**Prerequisites:**   
+- Helm 3.8+
+- k8s cluster with nginx ingress controller, cert manager, and load balancer
+- kubectl configured with cluster access
+- Clone repository
+
+```sh
+cd charts/tryit
+cp ../../.env.prod.example .env
+export $(grep -v '^#' .env | xargs)
+export DB_URL=$(eval echo "$DB_URL")
+export TEST_DB_URL=$(eval echo "$TEST_DB_URL")
+envsubst < values.yaml > values.processed.yaml
+helm upgrade --install tryit . \
+ -f values.processed.yaml \
+ -n tryit \
+ --create-namespace
+```
+
 ---
 
 ## Testing
